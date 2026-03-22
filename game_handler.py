@@ -130,41 +130,34 @@ class GameHandler:
             log.error(f"Illegal/null move: {move}")
 
     def _book_move(self) -> chess.Move | None:
-        try:
-            with chess.polyglot.open_reader(Config.BOOK_PATH) as reader:
-                entries = list(reader.find_all(self.board))
-                if not entries:
-                    return None
-                total = sum(e.weight for e in entries)
-                r = random.uniform(0, total)
-                cumulative = 0
-                for entry in entries:
-                    cumulative += entry.weight
-                    if r <= cumulative:
-                        return entry.move
-                return entries[0].move
-        except FileNotFoundError:
-            log.warning(f"Book not found: {Config.BOOK_PATH}")
-            self.in_book = False
-            return None
-        except Exception as e:
-            log.warning(f"Book error: {e}")
-            return None
+        # Only use book for standard chess
+        if not self.board.chess960:
+            try:
+                with chess.polyglot.open_reader(Config.BOOK_PATH) as reader:
+                    entries = list(reader.find_all(self.board))
+                    if not entries:
+                        return None
+                    total = sum(e.weight for e in entries)
+                    r = random.uniform(0, total)
+                    cumulative = 0
+                    for entry in entries:
+                        cumulative += entry.weight
+                        if r <= cumulative:
+                            return entry.move
+                    return entries[0].move
+            except FileNotFoundError:
+                log.warning(f"Book not found: {Config.BOOK_PATH}")
+                self.in_book = False
+                return None
+            except Exception as e:
+                log.warning(f"Book error: {e}")
+                return None
+        return None
 
     async def _stockfish_move(self, depth: int, state: dict) -> chess.Move | None:
         try:
-            elo_map = {
-                22: 2200, 20: 2000, 17: 1800, 14: 1600,
-                11: 1400, 8: 1200, 5: 1000, 3: 800, 2: 600, 1: 500
-            }
-            elo = elo_map.get(depth, 1200)
-
-            self.engine.configure({
-                "UCI_LimitStrength": True,
-                "UCI_Elo": elo
-            })
-
             limit = chess.engine.Limit(
+                depth=depth,
                 white_clock=state.get("wtime", 60000) / 1000,
                 black_clock=state.get("btime", 60000) / 1000,
                 white_inc=state.get("winc", 0) / 1000,
@@ -173,7 +166,7 @@ class GameHandler:
             result = await asyncio.get_event_loop().run_in_executor(
                 None, lambda: self.engine.play(self.board, limit)
             )
-            log.info(f"Stockfish ELO {elo}: {result.move.uci()}")
+            log.info(f"Stockfish depth {depth}: {result.move.uci()}")
             return result.move
         except Exception as e:
             log.error(f"Stockfish error: {e}")
