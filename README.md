@@ -84,6 +84,55 @@ Pull requests are welcome! If you have ideas for improvements, feel free to open
 ## Known Limitations
 - Requires Stockfish installed locally
 - Opening book not included (download separately)
+
+## Credits
+- [Stockfish](https://stockfishchess.org/) - Chess engine
+- [python-chess](https://python-chess.readthedocs.io/) - Chess library
+- [lichess-bot-devs](https://github.com/lichess-bot-devs/lichess-bot) - Bot framework reference (AGPL)
+
+## Roadmap
+- [ ] Deploy on cloud for 24/7 uptime
+- [ ] Web dashboard to monitor live games
+- [ ] Custom opening repertoire support
+- [ ] ELO tracking over time
+
+## Badges
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Lichess](https://img.shields.io/badge/Lichess-Bot-brown)
+
+## FAQ
+
+**Q: Why did the bot decline my draw offer?**
+A: The bot only accepts draws when it is losing or the position is equal. If it's winning, it will decline.
+
+**Q: Why is the bot playing so strong/weak?**
+A: The bot adapts to your live centipawn loss, not your rating. If you play accurately it plays stronger.
+
+**Q: Why did the bot resign?**
+A: The bot auto-resigns when it detects it is getting mated in 3 or less moves.
+
+**Q: Why did the bot go out of book so fast?**
+A: The opening book only covers common positions. Unusual moves will take it out of book early.
+
+**Q: Can I use this bot for training?**
+A: Yes! That's exactly what it's designed for.
+
+## Changelog
+
+### v1.0.0 (2026-03-22)
+- Initial release
+- Polyglot opening book support
+- Live CPL-based adaptive difficulty
+- Auto-accept challenges
+- Smart draw handling
+- Auto-resign on forced mate
+- Takeback support
+- Multiple concurrent games
+- Automatic stream reconnection
+
+
+```
 ---
 
 **requirements.txt**
