@@ -38,8 +38,8 @@ pip install -r requirements.txt
 
 ### 3. Download an opening book
 Get a free Polyglot .bin book:
-https://sourceforge.net/projects/codekiddy-chess-book/
-Recommended: gm2600.bin (GM-level weighted moves)
+https://github.com/official-stockfish/books/raw/master/gm2001.bin
+Recommended: gm2001.bin (GM-level weighted moves)
 Put it in this folder and set BOOK_PATH in config.py.
 
 ### 4. Create a Lichess bot account
@@ -69,8 +69,21 @@ lichess_bot/
 - The account MUST be a BOT account. Bot upgrades automatically on first run.
 - Once upgraded to BOT, the account cannot play as a human anymore — use a new account.
 - CPL estimation needs at least 3 opponent moves off-book before kicking in.
-```
 
+## Features
+- Auto-accepts challenges (bullet, blitz, rapid, classical, correspondence)
+- Smart draw handling (accepts when losing, declines when winning)
+- Auto-resigns when mated in 3 or less
+- Handles multiple concurrent games
+- Automatic reconnection if stream drops
+- Takeback support
+
+## Contributing
+Pull requests are welcome! If you have ideas for improvements, feel free to open an issue or submit a PR. Please credit the original author (Aarav Patel) in any forks or distributions.
+
+## Known Limitations
+- Requires Stockfish installed locally
+- Opening book not included (download separately)
 ---
 
 **requirements.txt**
