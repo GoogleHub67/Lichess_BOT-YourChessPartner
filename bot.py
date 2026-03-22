@@ -35,7 +35,7 @@ class LichessBot:
                 log.info("Upgrading to BOT account...")
                 await client.post("/api/bot/account/upgrade")
 
-        log.info("OpeningTrainer is ONLINE")
+        log.info("StopBlunderingInOpeningsYouIdiot is ONLINE")
         await self._stream_events()
 
     async def _stream_events(self):
@@ -91,8 +91,10 @@ class LichessBot:
 
         if variant not in Config.ACCEPT_VARIANTS:
             await self._decline(cid, "variant"); return
+
         if speed not in Config.ACCEPT_TIME_CONTROLS:
             await self._decline(cid, "tooSlow"); return
+
         if Config.DECLINE_RATED and rated:
             await self._decline(cid, "casual"); return
 
@@ -111,7 +113,6 @@ class LichessBot:
             pass
         except Exception as e:
             log.error(f"Game {game_id} error: {e}", exc_info=True)
-
 
 if __name__ == "__main__":
     bot = LichessBot()
