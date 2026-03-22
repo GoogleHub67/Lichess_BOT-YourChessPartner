@@ -8,13 +8,13 @@ class Config:
     BOOK_PATH: str = "gm2001.bin"
 
     CPL_DEPTH_MAP: list[tuple[int, int]] = [
-        (15,  22),
-        (25,  20),
-        (40,  17),
-        (60,  14),
-        (90,  11),
-        (130,  8),
-        (999,  5),
+        (15,  14),   # was 22
+        (25,  12),   # was 20
+        (40,  10),   # was 17
+        (60,   8),   # was 14
+        (90,   6),   # was 11
+        (130,  4),   # was 8
+        (999,  2),   # was 5
     ]
 
     CPL_MIN_SAMPLES: int = 3
