@@ -1,10 +1,8 @@
 import asyncio
 import json
 import logging
-import random
 import chess
 import chess.engine
-import chess.polyglot
 import httpx
 from config import Config
 from skill_estimator import SkillEstimator
@@ -20,15 +18,13 @@ class GameHandler:
         self.headers = {"Authorization": f"Bearer {token}"}
         self.board = chess.Board()
         self.our_color: chess.Color | None = None
-        self.in_book = True
-        self.off_book_notified = False
         self.engine: chess.engine.SimpleEngine | None = None
         self.estimator: SkillEstimator | None = None
+        self.variant: str = "standard"
 
     async def run(self):
         async with httpx.AsyncClient(base_url=BASE_URL, headers=self.headers, timeout=60) as client:
             self.client = client
-            await self._start_engine()
             try:
                 async with client.stream("GET", f"/api/bot/game/stream/{self.game_id}") as resp:
                     async for line in resp.aiter_lines():
@@ -41,11 +37,14 @@ class GameHandler:
     async def _handle_game_event(self, event: dict):
         etype = event.get("type")
         if etype == "gameFull":
+            self.variant = event.get("variant", {}).get("key", "standard")
+            await self._start_engine(self.variant)
+
             me = (await self.client.get("/api/account")).json()["id"]
             white_id = event["white"].get("id", "")
             self.our_color = chess.WHITE if white_id == me else chess.BLACK
             self.estimator = SkillEstimator(self.engine, self.our_color)
-            log.info(f"Playing as {'White' if self.our_color == chess.WHITE else 'Black'}")
+            log.info(f"Playing as {'White' if self.our_color == chess.WHITE else 'Black'} | Variant: {self.variant}")
             await self._chat(Config.CHAT_GREET)
             await self._apply_state(event.get("state", {}))
         elif etype == "gameState":
@@ -58,7 +57,7 @@ class GameHandler:
 
     async def _handle_draw_offer(self):
         try:
-            info = self.engine.analyse(self.board, chess.engine.Limit(depth=14))
+            info = self.engine.analyse(self.board, chess.engine.Limit(depth=8))
             score = info["score"].pov(self.our_color)
             if score.is_mate() and score.mate() < 0:
                 await self.client.post(f"/api/bot/game/{self.game_id}/draw/yes")
@@ -81,7 +80,7 @@ class GameHandler:
 
     async def _handle_resign(self):
         try:
-            info = self.engine.analyse(self.board, chess.engine.Limit(depth=16))
+            info = self.engine.analyse(self.board, chess.engine.Limit(depth=8))
             score = info["score"].pov(self.our_color)
             if score.is_mate() and score.mate() < 0 and abs(score.mate()) <= 3:
                 await self.client.post(f"/api/bot/game/{self.game_id}/resign")
@@ -102,26 +101,13 @@ class GameHandler:
             await self._make_move(state)
 
     async def _make_move(self, state: dict):
-        move = None
-        if self.in_book:
-            move = self._book_move()
-            if move:
-                log.info(f"Book move: {move.uci()}")
-            else:
-                self.in_book = False
-                log.info("Out of book")
-                if not self.off_book_notified:
-                    await self._chat(Config.CHAT_OFF_BOOK)
-                    self.off_book_notified = True
-
-        if move is None:
-            if self.estimator:
-                self.estimator.record_opponent_move(self.board)
-            depth = self.estimator.get_depth() if self.estimator else Config.DEFAULT_DEPTH
-            move = await self._stockfish_move(depth, state)
+        if self.estimator:
+            self.estimator.record_opponent_move(self.board)
+        elo = self.estimator.get_elo() if self.estimator else Config.DEFAULT_ELO
+        move = await self._stockfish_move(elo, state)
 
         if move and self.board.is_legal(move):
-            if self.estimator and not self.in_book:
+            if self.estimator:
                 board_copy = self.board.copy()
                 board_copy.push(move)
                 self.estimator.record_position_before_opponent_move(board_copy)
@@ -129,44 +115,29 @@ class GameHandler:
         else:
             log.error(f"Illegal/null move: {move}")
 
-def _book_move(self) -> chess.Move | None:
-    if self.board.chess960 or self.board.variant_name() != "Standard":
-        self.in_book = False
-        return None
-    try:
-        with chess.polyglot.open_reader(Config.BOOK_PATH) as reader:
-            entries = list(reader.find_all(self.board))
-            if not entries:
-                return None
-            total = sum(e.weight for e in entries)
-            r = random.uniform(0, total)
-            cumulative = 0
-            for entry in entries:
-                cumulative += entry.weight
-                if r <= cumulative:
-                    return entry.move
-            return entries[0].move
-    except FileNotFoundError:
-        log.warning(f"Book not found: {Config.BOOK_PATH}")
-        self.in_book = False
-        return None
-    except Exception as e:
-        log.warning(f"Book error: {e}")
-        return None
-
-    async def _stockfish_move(self, depth: int, state: dict) -> chess.Move | None:
+    async def _stockfish_move(self, elo: int, state: dict) -> chess.Move | None:
         try:
-            limit = chess.engine.Limit(
-                depth=depth,
-                white_clock=state.get("wtime", 60000) / 1000,
-                black_clock=state.get("btime", 60000) / 1000,
-                white_inc=state.get("winc", 0) / 1000,
-                black_inc=state.get("binc", 0) / 1000,
-            )
+            self.engine.configure({
+                "UCI_LimitStrength": True,
+                "UCI_Elo": elo
+            })
+
+            wtime = state.get("wtime", 0)
+            btime = state.get("btime", 0)
+            if wtime == 0 and btime == 0:
+                limit = chess.engine.Limit(depth=8)
+            else:
+                limit = chess.engine.Limit(
+                    white_clock=wtime / 1000,
+                    black_clock=btime / 1000,
+                    white_inc=state.get("winc", 0) / 1000,
+                    black_inc=state.get("binc", 0) / 1000,
+                )
+
             result = await asyncio.get_event_loop().run_in_executor(
                 None, lambda: self.engine.play(self.board, limit)
             )
-            log.info(f"Stockfish depth {depth}: {result.move.uci()}")
+            log.info(f"Stockfish ELO {elo}: {result.move.uci()}")
             return result.move
         except Exception as e:
             log.error(f"Stockfish error: {e}")
@@ -186,12 +157,13 @@ def _book_move(self) -> chess.Move | None:
         except Exception as e:
             log.warning(f"Chat failed: {e}")
 
-    async def _start_engine(self):
+    async def _start_engine(self, variant: str = "standard"):
+        path = Config.FAIRY_STOCKFISH_PATH if variant == "chess960" else Config.STOCKFISH_PATH
         loop = asyncio.get_event_loop()
         self.engine = await loop.run_in_executor(
-            None, lambda: chess.engine.SimpleEngine.popen_uci(Config.STOCKFISH_PATH)
+            None, lambda: chess.engine.SimpleEngine.popen_uci(path)
         )
-        log.info("Engine started")
+        log.info(f"Engine started: {'Fairy-Stockfish' if variant == 'chess960' else 'Stockfish'}")
 
     async def _stop_engine(self):
         if self.engine:
