@@ -131,7 +131,16 @@ A: Yes! That's exactly what it's designed for.
 - Multiple concurrent games
 - Automatic stream reconnection
 
-
+### Optional: Environment variables
+If you want to keep your token secure, install python-dotenv:
+```
+pip install python-dotenv
+```
+Then create a `.env` file with:
+```
+LICHESS_TOKEN=lip_yourtoken
+```
+Otherwise just paste your token directly in `config.py`.
 ```
 ---
 
