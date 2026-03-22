@@ -111,7 +111,7 @@ forks or distributions.
 - Requires Stockfish and Fairy-Stockfish installed locally
 - Needs at least 3 opponent moves before CPL kicks in
 - Once upgraded to BOT, the account cannot play as a human anymore
-
+- Needs CMD/PowerShell to be open to play with the bot
 ---
 
 ## Credits
@@ -151,14 +151,13 @@ A: Yes! That's exactly what it's designed for.
 ### v1.0.0 (2026-03-22)
 - Initial release
 - Live CPL-based adaptive difficulty using UCI_Elo
-- Fairy-Stockfish support for all variants
 - Auto-accept challenges
 - Smart draw handling
 - Auto-resign on forced mate
 - Takeback support
 - Multiple concurrent games
 - Automatic stream reconnection
-
+- Support for 2 chess game types—Classical & Chess960.
 ---
 
 ## Optional: Environment variables
