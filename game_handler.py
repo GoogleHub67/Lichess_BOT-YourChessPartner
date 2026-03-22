@@ -153,8 +153,18 @@ class GameHandler:
 
     async def _stockfish_move(self, depth: int, state: dict) -> chess.Move | None:
         try:
+            elo_map = {
+                22: 2200, 20: 2000, 17: 1800, 14: 1600,
+                11: 1400, 8: 1200, 5: 1000, 3: 800, 2: 600, 1: 500
+            }
+            elo = elo_map.get(depth, 1200)
+
+            self.engine.configure({
+                "UCI_LimitStrength": True,
+                "UCI_Elo": elo
+            })
+
             limit = chess.engine.Limit(
-                depth=depth,
                 white_clock=state.get("wtime", 60000) / 1000,
                 black_clock=state.get("btime", 60000) / 1000,
                 white_inc=state.get("winc", 0) / 1000,
@@ -163,7 +173,7 @@ class GameHandler:
             result = await asyncio.get_event_loop().run_in_executor(
                 None, lambda: self.engine.play(self.board, limit)
             )
-            log.info(f"Stockfish depth {depth}: {result.move.uci()}")
+            log.info(f"Stockfish ELO {elo}: {result.move.uci()}")
             return result.move
         except Exception as e:
             log.error(f"Stockfish error: {e}")
