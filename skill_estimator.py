@@ -48,15 +48,15 @@ class SkillEstimator:
     def has_enough_data(self) -> bool:
         return len(self._cpl_samples) >= Config.CPL_MIN_SAMPLES
 
-    def get_depth(self) -> int:
+    def get_elo(self) -> int:
         if not self.has_enough_data:
-            return Config.DEFAULT_DEPTH
+            return Config.DEFAULT_ELO
         cpl = self.avg_cpl
-        for threshold, depth in Config.CPL_DEPTH_MAP:
+        for threshold, elo in Config.CPL_ELO_MAP:
             if cpl <= threshold:
-                log.info(f"Avg CPL={cpl:.1f} -> depth {depth}")
-                return depth
-        return Config.CPL_DEPTH_MAP[-1][1]
+                log.info(f"Avg CPL={cpl:.1f} -> ELO {elo}")
+                return elo
+        return Config.CPL_ELO_MAP[-1][1]
 
     @staticmethod
     def _score_to_cp(score: chess.engine.PovScore) -> float:
