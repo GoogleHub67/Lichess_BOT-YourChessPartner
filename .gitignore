@@ -209,5 +209,6 @@ __marimo__/
 # Bot specific
 config.py
 config.yml
+.env
 *.bin
 bot.log
