@@ -8,17 +8,17 @@ class Config:
     BOOK_PATH: str = "gm2001.bin"
     
     CPL_DEPTH_MAP: list[tuple[int, int]] = [
-            (15,   8),
-            (25,   7),
-            (40,   6),
-            (60,   5),
-            (90,   4),
-            (130,  3),
-            (999,  2),
+        (15,   5),
+        (25,   4),
+        (40,   3),
+        (60,   3),
+        (90,   2),
+        (130,  2),
+        (999,  1),
     ]
 
     CPL_MIN_SAMPLES: int = 3
-    DEFAULT_DEPTH: int = 12
+    DEFAULT_DEPTH: int = 3
 
     ACCEPT_VARIANTS: list[str] = [
         "standard", "chess960", "crazyhouse", "antichess",
