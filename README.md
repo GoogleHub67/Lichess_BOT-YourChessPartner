@@ -1,94 +1,126 @@
-# OpeningTrainer 🤖♟️
+# Inappropriate_BOT - Adaptive Chess Partner
 
-A Lichess bot that plays perfect opening theory from a Polyglot book,
-then dynamically scales its Stockfish strength to match the opponent's
-live skill level (measured by centipawn loss) once theory ends.
+![Python](https://img.shields.io/badge/Python-3.10+-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Lichess](https://img.shields.io/badge/Lichess-Bot-brown)
+
+A Lichess bot that dynamically adapts its playing strength to match your live 
+skill level using centipawn loss analysis. The harder you play, the harder it 
+plays back. Supports all Lichess variants with Fairy-Stockfish.
+
+Built by Aarav Patel.
+
 NOTE: Based on https://github.com/lichess-bot-devs/lichess-bot (AGPL License)
 
+---
+
 ## How it works
+```
 Game starts
-    │
-    ▼
-Opening book (.bin) ──── weighted random move (varied every game)
-    │
-    │ (first position not in book)
-    ▼
-Track opponent's moves with Stockfish
-    │   → compute CPL (centipawn loss) per move
-    │   → rolling average CPL
-    │
-    ▼
-Map avg CPL → Stockfish depth
-    │   CPL ≤ 15  → depth 22  (master-level play)
-    │   CPL ≤ 40  → depth 17  (strong club player)
-    │   CPL ≤ 90  → depth 11  (casual)
-    │   CPL > 130 → depth 5   (beginner)
-    ▼
-Play at that depth for the rest of the game
+    |
+    v
+Bot plays at default ELO (1200)
+    |
+    v
+Tracks your centipawn loss per move
+    |   -> rolling average CPL
+    |
+    v
+Maps avg CPL -> Stockfish ELO
+    |   CPL <= 15  -> ELO 2200 (master)
+    |   CPL <= 25  -> ELO 2000 (expert)
+    |   CPL <= 40  -> ELO 1800 (strong club)
+    |   CPL <= 60  -> ELO 1600 (intermediate)
+    |   CPL <= 90  -> ELO 1400 (casual)
+    |   CPL <= 130 -> ELO 1200 (beginner)
+    |   CPL > 130  -> ELO 1000 (newcomer)
+    v
+Plays at that ELO for the rest of the game
+```
+
+---
+
+## Features
+- Fully adaptive strength based on live CPL
+- Supports all Lichess variants (Fairy-Stockfish for variants)
+- Smart draw handling (accepts when losing, declines when winning)
+- Auto-resigns when mated in 3 or less
+- Takeback support
+- Multiple concurrent games
+- Automatic stream reconnection
+- Works with bullet, blitz, rapid, classical, correspondence
+
+---
 
 ## Setup
 
 ### 1. Install dependencies
+```
 pip install -r requirements.txt
+```
 
 ### 2. Install Stockfish
-- Windows: https://stockfishchess.org/download/ → add to PATH or set STOCKFISH_PATH in config.py
-- Linux: sudo apt install stockfish
-- Mac: brew install stockfish
+- Windows: https://stockfishchess.org/download/
+- Linux: `sudo apt install stockfish`
+- Mac: `brew install stockfish`
 
-### 3. Download an opening book
-Get a free Polyglot .bin book:
-https://github.com/official-stockfish/books/raw/master/gm2001.bin
-Recommended: gm2001.bin (GM-level weighted moves)
-Put it in this folder and set BOOK_PATH in config.py.
+### 3. Install Fairy-Stockfish (for variants)
+Download from https://github.com/fairy-stockfish/Fairy-Stockfish/releases
+Place it in the same folder as Stockfish and update FAIRY_STOCKFISH_PATH in config.py.
 
-### 4. Create a Lichess bot account
-- Make a NEW Lichess account (bot accounts can't play normal games)
+### 4. Create a Lichess BOT account
+- Make a NEW Lichess account (never played any games)
 - Go to https://lichess.org/account/oauth/token/create
-- Create a token with scope: bot:play
-- Paste it in config.py as LICHESS_TOKEN
+- Tick only `bot:play` scope
+- Copy the token
 
-### 5. Configure config.py
-LICHESS_TOKEN = "lip_xxxxxxxxxxxx"
-STOCKFISH_PATH = "stockfish"  # or "C:/stockfish/stockfish.exe" on Windows
-BOOK_PATH = "gm2600.bin"
+### 5. Configure
+Create a `.env` file:
+```
+LICHESS_TOKEN=lip_yourtoken
+```
+Update `STOCKFISH_PATH` and `FAIRY_STOCKFISH_PATH` in config.py to your engine locations.
 
 ### 6. Run
+```
 python bot.py
+```
+
+---
 
 ## File structure
-lichess_bot/
-├── bot.py              # Event stream, challenge handler
-├── game_handler.py     # Per-game loop: book → Stockfish
-├── skill_estimator.py  # CPL tracker, depth mapper
-├── config.py           # All settings
-├── requirements.txt
+```
+├── bot.py             - Main entry point, event stream, challenge handler
+├── game_handler.py    - Per-game loop and move logic
+├── skill_estimator.py - CPL tracker and ELO mapper
+├── config.py          - All settings
+├── requirements.txt   - Python dependencies
 └── README.md
+```
 
-## Notes
-- The account MUST be a BOT account. Bot upgrades automatically on first run.
-- Once upgraded to BOT, the account cannot play as a human anymore — use a new account.
-- CPL estimation needs at least 3 opponent moves off-book before kicking in.
-
-## Features
-- Auto-accepts challenges (bullet, blitz, rapid, classical, correspondence)
-- Smart draw handling (accepts when losing, declines when winning)
-- Auto-resigns when mated in 3 or less
-- Handles multiple concurrent games
-- Automatic reconnection if stream drops
-- Takeback support
+---
 
 ## Contributing
-Pull requests are welcome! If you have ideas for improvements, feel free to open an issue or submit a PR. Please credit the original author (Aarav Patel) in any forks or distributions.
+Pull requests are welcome! If you have ideas for improvements, feel free to open 
+an issue or submit a PR. Please credit the original author (Aarav Patel) in any 
+forks or distributions.
+
+---
 
 ## Known Limitations
-- Requires Stockfish installed locally
-- Opening book not included (download separately)
+- Requires Stockfish and Fairy-Stockfish installed locally
+- Needs at least 3 opponent moves before CPL kicks in
+- Once upgraded to BOT, the account cannot play as a human anymore
+
+---
 
 ## Credits
 - [Stockfish](https://stockfishchess.org/) - Chess engine
+- [Fairy-Stockfish](https://github.com/fairy-stockfish/Fairy-Stockfish) - Variant chess engine
 - [python-chess](https://python-chess.readthedocs.io/) - Chess library
 - [lichess-bot-devs](https://github.com/lichess-bot-devs/lichess-bot) - Bot framework reference (AGPL)
+
+---
 
 ## Roadmap
 - [ ] Deploy on cloud for 24/7 uptime
@@ -96,15 +128,12 @@ Pull requests are welcome! If you have ideas for improvements, feel free to open
 - [ ] Custom opening repertoire support
 - [ ] ELO tracking over time
 
-## Badges
-![Python](https://img.shields.io/badge/Python-3.10+-blue)
-![License](https://img.shields.io/badge/License-MIT-green)
-![Lichess](https://img.shields.io/badge/Lichess-Bot-brown)
+---
 
 ## FAQ
 
 **Q: Why did the bot decline my draw offer?**
-A: The bot only accepts draws when it is losing or the position is equal. If it's winning, it will decline.
+A: The bot only accepts draws when it is losing or the position is equal.
 
 **Q: Why is the bot playing so strong/weak?**
 A: The bot adapts to your live centipawn loss, not your rating. If you play accurately it plays stronger.
@@ -112,18 +141,17 @@ A: The bot adapts to your live centipawn loss, not your rating. If you play accu
 **Q: Why did the bot resign?**
 A: The bot auto-resigns when it detects it is getting mated in 3 or less moves.
 
-**Q: Why did the bot go out of book so fast?**
-A: The opening book only covers common positions. Unusual moves will take it out of book early.
-
 **Q: Can I use this bot for training?**
 A: Yes! That's exactly what it's designed for.
+
+---
 
 ## Changelog
 
 ### v1.0.0 (2026-03-22)
 - Initial release
-- Polyglot opening book support
-- Live CPL-based adaptive difficulty
+- Live CPL-based adaptive difficulty using UCI_Elo
+- Fairy-Stockfish support for all variants
 - Auto-accept challenges
 - Smart draw handling
 - Auto-resign on forced mate
@@ -131,20 +159,20 @@ A: Yes! That's exactly what it's designed for.
 - Multiple concurrent games
 - Automatic stream reconnection
 
-### Optional: Environment variables
-If you want to keep your token secure, install python-dotenv:
+---
+
+## Optional: Environment variables
+Install python-dotenv for secure token storage:
 ```
 pip install python-dotenv
 ```
-Then create a `.env` file with:
+Create a `.env` file:
 ```
 LICHESS_TOKEN=lip_yourtoken
 ```
-Otherwise just paste your token directly in `config.py`.
-```
+Otherwise paste your token directly in config.py.
+
 ---
 
-**requirements.txt**
-```
-chess>=1.10.0
-httpx>=0.27.0
+## License
+MIT License - Copyright (c) 2026 Aarav Patel
