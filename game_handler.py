@@ -129,29 +129,29 @@ class GameHandler:
         else:
             log.error(f"Illegal/null move: {move}")
 
-    def _book_move(self) -> chess.Move | None:
-        # Only use book for standard chess
-        if not self.board.chess960:
-            try:
-                with chess.polyglot.open_reader(Config.BOOK_PATH) as reader:
-                    entries = list(reader.find_all(self.board))
-                    if not entries:
-                        return None
-                    total = sum(e.weight for e in entries)
-                    r = random.uniform(0, total)
-                    cumulative = 0
-                    for entry in entries:
-                        cumulative += entry.weight
-                        if r <= cumulative:
-                            return entry.move
-                    return entries[0].move
-            except FileNotFoundError:
-                log.warning(f"Book not found: {Config.BOOK_PATH}")
-                self.in_book = False
+def _book_move(self) -> chess.Move | None:
+    if self.board.chess960 or self.board.variant_name() != "Standard":
+        self.in_book = False
+        return None
+    try:
+        with chess.polyglot.open_reader(Config.BOOK_PATH) as reader:
+            entries = list(reader.find_all(self.board))
+            if not entries:
                 return None
-            except Exception as e:
-                log.warning(f"Book error: {e}")
-                return None
+            total = sum(e.weight for e in entries)
+            r = random.uniform(0, total)
+            cumulative = 0
+            for entry in entries:
+                cumulative += entry.weight
+                if r <= cumulative:
+                    return entry.move
+            return entries[0].move
+    except FileNotFoundError:
+        log.warning(f"Book not found: {Config.BOOK_PATH}")
+        self.in_book = False
+        return None
+    except Exception as e:
+        log.warning(f"Book error: {e}")
         return None
 
     async def _stockfish_move(self, depth: int, state: dict) -> chess.Move | None:
